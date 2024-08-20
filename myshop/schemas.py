@@ -48,3 +48,17 @@ class Category(CategoryBase):
 
     class Config:
         orm_mode = True
+
+class CartItemBase(BaseModel):
+    product_id: int
+    quantity: int
+
+class CartItemCreate(CartItemBase):
+    user_id: int
+
+class CartItem(CartItemBase):
+    id: int
+    product: Product
+
+    class Config:
+        orm_mode = True

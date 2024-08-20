@@ -37,3 +37,13 @@ class Product(Base):
     subcategory_id = Column(Integer, ForeignKey("subcategories.id"))
 
     subcategory = relationship("SubCategory", back_populates="products")
+
+class CartItem(Base):
+    __tablename__ = "cart_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"))
+    quantity = Column(Integer)
+    user_id = Column(Integer)  # Связь с пользователем, замените на ForeignKey если есть таблица пользователей
+
+    product = relationship("Product")
