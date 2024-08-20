@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
+
 
 class Category(Base):
     __tablename__ = "categories"
@@ -11,6 +12,7 @@ class Category(Base):
     image = Column(String)
 
     subcategories = relationship("SubCategory", back_populates="category")
+
 
 class SubCategory(Base):
     __tablename__ = "subcategories"
@@ -23,6 +25,7 @@ class SubCategory(Base):
 
     category = relationship("Category", back_populates="subcategories")
     products = relationship("Product", back_populates="subcategory")
+
 
 class Product(Base):
     __tablename__ = "products"
@@ -38,12 +41,25 @@ class Product(Base):
 
     subcategory = relationship("SubCategory", back_populates="products")
 
+
 class CartItem(Base):
     __tablename__ = "cart_items"
 
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("products.id"))
     quantity = Column(Integer)
-    user_id = Column(Integer)  # Связь с пользователем, замените на ForeignKey если есть таблица пользователей
+    user_id = Column(
+        Integer
+    )  # Связь с пользователем, замените на ForeignKey если есть таблица пользователей
 
     product = relationship("Product")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Boolean, default=True)

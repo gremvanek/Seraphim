@@ -1,27 +1,63 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from .. import crud, schemas, database
+from pydantic import BaseModel
 
-router = APIRouter()
+from myshop.models import CartItem
+from myshop.database import get_db, get_current_user
 
-@router.post("/cart/", response_model=schemas.CartItem)
-def add_to_cart(cart_item: schemas.CartItemCreate, db: Session = Depends(database.get_db)):
-    return crud.create_cart_item(db=db, cart_item=cart_item)
+router = APIRouter()  # Создаем объект маршрутизатора
 
-@router.get("/cart/", response_model=list[schemas.CartItem])
-def read_cart(user_id: int, db: Session = Depends(database.get_db)):
-    cart_items = crud.get_cart_items(db, user_id=user_id)
-    return cart_items
 
-@router.put("/cart/{cart_item_id}", response_model=schemas.CartItem)
-def update_cart(cart_item_id: int, quantity: int, db: Session = Depends(database.get_db)):
-    return crud.update_cart_item(db=db, cart_item_id=cart_item_id, quantity=quantity)
+class CartItemRequest(BaseModel):
+    product_id: int
+    quantity: int
 
-@router.delete("/cart/{cart_item_id}", response_model=schemas.CartItem)
-def remove_from_cart(cart_item_id: int, db: Session = Depends(database.get_db)):
-    return crud.delete_cart_item(db=db, cart_item_id=cart_item_id)
 
-@router.delete("/cart/", response_model=list[schemas.CartItem])
-def clear_cart(user_id: int, db: Session = Depends(database.get_db)):
-    crud.clear_cart(db=db, user_id=user_id)
-    return []
+@router.post("/cart/")
+def add_item_to_cart(
+    item: CartItemRequest,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    cart_item = (
+        db.query(CartItem)
+        .filter_by(user_id=user_id, product_id=item.product_id)
+        .first()
+    )
+    if cart_item:
+        cart_item.quantity += item.quantity
+    else:
+        new_cart_item = CartItem(
+            user_id=user_id, product_id=item.product_id, quantity=item.quantity
+        )
+        db.add(new_cart_item)
+    db.commit()
+
+
+@router.get("/cart/")
+def get_cart(db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+    cart_items = db.query(CartItem).filter_by(user_id=user_id).all()
+    total = sum(item.product.price * item.quantity for item in cart_items)
+    return {"items": cart_items, "total": total}
+
+
+@router.delete("/cart/{item_id}")
+def delete_item_from_cart(
+    item_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    cart_item = db.query(CartItem).filter_by(user_id=user_id, id=item_id).first()
+    if cart_item:
+        db.delete(cart_item)
+        db.commit()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
+        )
+
+
+@router.delete("/cart/")
+def clear_cart(db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+    db.query(CartItem).filter_by(user_id=user_id).delete()
+    db.commit()

@@ -6,6 +6,7 @@ def generate_sequence(n):
         num += 1
     return sequence[:n]
 
+
 if __name__ == "__main__":
     n = int(input("Введите количество элементов: "))
     result = generate_sequence(n)
