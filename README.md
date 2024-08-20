@@ -1,1 +1,1 @@
-# Seraphim
+# Seraphim project
