@@ -46,6 +46,9 @@ def get_db():
     finally:
         db.close()
 
+@app.get("/")
+async def root():
+    return {"message": "Seraphim"}
 
 @app.post("/categories/", response_model=schemas.Category)
 def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_db)):
